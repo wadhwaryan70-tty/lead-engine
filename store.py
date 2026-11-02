@@ -69,10 +69,10 @@ def sync():
         with _connect() as conn:
             _ensure(conn)
             with conn.cursor() as cur:
-                for rel, data in changed.items():
-                    cur.execute("""INSERT INTO app_files (path, content, updated_at) VALUES (%s, %s, now())
-                                   ON CONFLICT (path) DO UPDATE SET content = EXCLUDED.content, updated_at = now()""",
-                                (rel, data))
+                if changed:
+                    cur.executemany("""INSERT INTO app_files (path, content, updated_at) VALUES (%s, %s, now())
+                                       ON CONFLICT (path) DO UPDATE SET content = EXCLUDED.content, updated_at = now()""",
+                                    list(changed.items()))
                 if removed:
                     cur.execute("DELETE FROM app_files WHERE path = ANY(%s)", (removed,))
         for rel, data in changed.items():
