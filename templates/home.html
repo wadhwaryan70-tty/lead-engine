@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% block title %}Find clients{% endblock %}
+{% block body %}
+<h1>Find new clients</h1>
+<p class="sub">Search for oil &amp; gas companies with roles left open for 30+ days, find who to contact, and get ready-to-send drafts.</p>
+
+{% if setup_missing %}
+<div class="alert">Before your first search, add {{ setup_missing|join(' and ') }} in <a href="{{ url_for('settings_page') }}">Settings</a>.</div>
+{% endif %}
+
+{% if job.running %}
+<div class="alert">A search is running now{% if job.by %} (started by {{ job.by }}){% endif %}. <a href="{{ url_for('job_page') }}">Watch progress</a></div>
+{% endif %}
+
+<div class="grid g3">
+  <div class="card">
+    <div class="row" style="justify-content:space-between"><h2 style="margin:0">Job search credits</h2>
+      <a class="hint" href="{{ url_for('refresh_credits') }}">Refresh</a></div>
+    {% set ts = credits.ts %}
+    {% if ts %}
+      {% set pct = (100 * ts.used / ts.total) if ts.total else 0 %}
+      <div class="stat">{{ ts.left }} <span class="muted" style="font-size:14px;font-weight:500">of {{ ts.total }} left</span></div>
+      <div class="meter {{ 'out' if ts.left == 0 else ('low' if ts.left < 25 else '') }}"><i style="width:{{ pct }}%"></i></div>
+      <div class="hint">1 credit = 1 job ad. Renews {{ ts.renews }}.
+        {% if ts.left == 0 %}<b>Used up.</b> {% if credits.adzuna_on %}Searches will use Adzuna (free) instead.{% else %}Use “Your lists” until then.{% endif %}{% endif %}</div>
+    {% else %}
+      <div class="stat muted">–</div><div class="hint">Add a TheirStack key in Settings to see your balance.</div>
+    {% endif %}
+  </div>
+  <div class="card">
+    <h2>AI writing today</h2>
+    <div class="stat">{{ credits.gemini_today }} <span class="muted" style="font-size:14px;font-weight:500">drafts written</span></div>
+    <div class="hint">Free daily limit. If it's reached, the backup key takes over, then built-in templates.</div>
+  </div>
+  <div class="card">
+    <h2>Email finder</h2>
+    <div class="stat">Free</div>
+    <div class="hint">{{ credits.checks_today }} email checks today, no limit.
+      Contact lookup service: {{ 'not available on your current plan' if 'blocked' in credits.apollo else credits.apollo }}.</div>
+  </div>
+</div>
+
+<form class="card" method="post" action="{{ url_for('start_run') }}" id="runform">
+  <h2>1. Where should we look?</h2>
+  <div class="row" style="margin-bottom:10px">
+    <button type="button" class="btn small" onclick="setAll(true)">Select all</button>
+    <button type="button" class="btn small" onclick="setAll(false)">Clear</button>
+    <span class="hint" id="count"></span>
+  </div>
+  <div class="grid g3">
+  {% for region, codes in regions.items() %}
+    <div>
+      <label style="font-weight:600;display:flex;gap:8px;align-items:center;margin-bottom:6px">
+        <input type="checkbox" class="region" data-region="{{ loop.index }}"> {{ region }}</label>
+      {% for c in codes %}
+      <label style="display:flex;gap:8px;align-items:center;font-size:14px;margin:2px 0 2px 4px">
+        <input type="checkbox" name="countries" value="{{ c }}" class="cty">
+        {{ names.get(c, c)|replace("the ", "", 1) }}</label>
+      {% endfor %}
+    </div>
+  {% endfor %}
+  </div>
+
+  <h2 style="margin-top:22px">2. How big a search?</h2>
+  <div class="grid g3">
+    <div><label class="f" for="max_jobs">Job ads to check</label>
+      <input type="number" id="max_jobs" name="max_jobs" value="25" min="1" max="500">
+      <div class="hint">Uses 1 credit each{% if credits.ts %} · {{ credits.ts.left }} left{% endif %}.</div></div>
+    <div><label class="f" for="max_companies">Companies to find contacts at</label>
+      <input type="number" id="max_companies" name="max_companies" value="15" min="1" max="100">
+      <div class="hint">Free. More companies = longer search (about 15 sec each).</div></div>
+    <div><label class="f" for="source">Job source</label>
+      <select id="source" name="source">
+        <option value="auto">Automatic (best available)</option>
+        <option value="theirstack">TheirStack only</option>
+        {% if credits.adzuna_on %}<option value="adzuna">Adzuna only (free)</option><option value="both">Both</option>{% endif %}
+      </select></div>
+  </div>
+  <div class="row" style="margin-top:14px">
+    <label class="row" style="gap:6px"><input type="checkbox" name="ai" checked> Write drafts with AI</label>
+    <label class="row" style="gap:6px"><input type="checkbox" name="include_recent"> Include people already contacted in the last 90 days</label>
+  </div>
+  <div class="row" style="margin-top:18px">
+    <button class="btn primary" {{ 'disabled' if job.running }}>Find clients</button>
+    <span class="hint">Takes 3–6 minutes. You can leave the page and come back.</span>
+  </div>
+</form>
+
+<div class="grid g2">
+  <div class="card">
+    <h2>Your own lists</h2>
+    <p class="hint" style="margin-top:0">{{ people_waiting }} people waiting for emails · {{ old_files }} old prospect file{{ '' if old_files == 1 else 's' }}.
+      Uses no job search credits.</p>
+    <form method="post" action="{{ url_for('run_lists') }}" class="row">
+      <button class="btn" {{ 'disabled' if job.running or (not people_waiting and not old_files) }}>Find emails &amp; write drafts</button>
+      <a href="{{ url_for('people') }}">Add people or upload a list</a>
+    </form>
+  </div>
+  <div class="card">
+    <h2>Recent searches</h2>
+    {% if runs %}
+    <table>{% for r in runs %}
+      <tr><td><a href="{{ url_for('results', run_id=r.id) }}">{{ r.when }}</a><div class="hint">{{ r.scope }}</div></td>
+          <td class="hint">{{ r.companies }} companies<br>{{ r.drafts }} drafts</td></tr>
+    {% endfor %}</table>
+    {% else %}<p class="hint">No searches yet.</p>{% endif %}
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+const regions=[...document.querySelectorAll('.region')];
+regions.forEach((rb)=>{
+  const box=rb.closest('div');
+  const ctys=[...box.querySelectorAll('.cty')];
+  rb.addEventListener('change',()=>{ctys.forEach(c=>c.checked=rb.checked);upd()});
+  ctys.forEach(c=>c.addEventListener('change',upd));
+});
+function setAll(v){document.querySelectorAll('.cty,.region').forEach(c=>c.checked=v);upd()}
+function upd(){
+  regions.forEach(rb=>{const cs=[...rb.closest('div').querySelectorAll('.cty')];
+    rb.checked=cs.every(c=>c.checked);rb.indeterminate=!rb.checked&&cs.some(c=>c.checked)});
+  const n=document.querySelectorAll('.cty:checked').length;
+  document.getElementById('count').textContent=n?n+' countr'+(n==1?'y':'ies')+' selected':'Pick at least one country';
+}
+upd();
+</script>
+{% endblock %}

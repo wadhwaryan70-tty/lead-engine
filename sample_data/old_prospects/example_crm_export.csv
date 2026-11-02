@@ -1,0 +1,5 @@
+Name,Email,Company,Designation,Country,Status,Notes
+Taylor Old,taylor@demo-epc.example,Demo EPC Contractors,Operations Manager,Nigeria,Contacted 2024,Liked our CVs but budget frozen
+Casey Former,casey@another-operator.example,Another Operator SA,HR Director,Brazil,Prospect,
+Casey Former,casey@another-operator.example,Another Operator SA,HR Director,Brazil,Prospect,duplicate row
+Morgan Nope,morgan@nope.example,Nope Energy,Project Manager,Norway,Not interested,asked us not to call

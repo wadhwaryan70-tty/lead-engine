@@ -1,0 +1,38 @@
+[
+ {
+  "company": "Sample Offshore Drilling Ltd",
+  "company_domain": "sample-offshore.example",
+  "job_title": "Rig Manager",
+  "country_code": "MY",
+  "location": "Kuala Lumpur",
+  "date_posted": "2026-09-16",
+  "job_url": "https://example.com/job/1"
+ },
+ {
+  "company": "Sample Offshore Drilling Ltd",
+  "company_domain": "sample-offshore.example",
+  "job_title": "Subsea Engineer",
+  "country_code": "MY",
+  "location": "Miri",
+  "date_posted": "2026-09-28",
+  "job_url": "https://example.com/job/2"
+ },
+ {
+  "company": "Demo EPC Contractors",
+  "company_domain": "demo-epc.example",
+  "job_title": "Commissioning Manager",
+  "country_code": "NG",
+  "location": "Lagos",
+  "date_posted": "2026-09-01",
+  "job_url": "https://example.com/job/3"
+ },
+ {
+  "company": "Example North Sea Services",
+  "company_domain": "example-northsea.example",
+  "job_title": "HSE Supervisor",
+  "country_code": "GB",
+  "location": "Aberdeen",
+  "date_posted": "2026-09-30",
+  "job_url": "https://example.com/job/4"
+ }
+]

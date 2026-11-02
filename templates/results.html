@@ -1,0 +1,264 @@
+{% extends "base.html" %}
+{% block title %}Results{% endblock %}
+{% block head %}
+<style>
+.draft{border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:14px;background:var(--card)}
+.draft h3{margin:0;font-size:16px}
+.draft .meta{color:var(--muted);font-size:13px}
+.draft details{margin-top:10px}
+.draft summary{cursor:pointer;font-weight:600;font-size:14px}
+.two{display:grid;grid-template-columns:1.3fr 1fr;gap:16px;margin-top:12px}
+@media (max-width:820px){.two{grid-template-columns:1fr}}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.chip{border:1px solid var(--line);background:var(--card);border-radius:99px;padding:5px 12px;font:inherit;font-size:13px;cursor:pointer;color:var(--ink)}
+.chip.on{background:var(--brand);color:var(--brand-ink);border-color:var(--brand)}
+.saved{font-size:12px;color:var(--good);opacity:0;transition:opacity .3s}
+.saved.show{opacity:1}
+.count{font-size:12px;color:var(--muted)}
+.count.over{color:var(--bad);font-weight:600}
+.score{min-width:64px;text-align:center;border-radius:12px;padding:8px 6px;font-size:24px;font-weight:700;line-height:1;background:var(--chip);color:var(--muted)}
+.score small{display:block;font-size:11px;font-weight:600;margin-top:4px}
+.score.good{background:var(--good-soft);color:var(--good)}.score.warn{background:var(--warn-soft);color:var(--warn)}
+.itabs{display:flex;gap:4px;flex-wrap:wrap;margin:14px 0 4px;border-bottom:1px solid var(--line)}
+.itabs button{border:0;background:none;color:var(--muted);font:inherit;font-size:13px;font-weight:500;padding:7px 10px;cursor:pointer;border-bottom:2px solid transparent}
+.itabs button.on{color:var(--brand);border-color:var(--brand)}
+.pane{padding-top:6px}
+.pack{white-space:pre-wrap;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px;font-size:12.5px}
+.sents div{margin:4px 0;font-size:14px}
+</style>
+{% endblock %}
+{% block body %}
+<div class="row" style="justify-content:space-between;align-items:flex-end">
+  <div><h1>Results</h1><p class="sub" style="margin:0">{{ info.when }}{% if info.scope %} · {{ info.scope }}{% endif %}</p></div>
+  <form method="get" class="row" action="" style="max-width:100%">
+    <select onchange="location='{{ url_for('results') }}/'+this.value" style="width:auto;max-width:100%">
+      {% for r in runs %}<option value="{{ r.id }}" {{ 'selected' if r.id == run_id }}>{{ r.when }} · {{ r.scope }}</option>{% endfor %}
+    </select>
+  </form>
+</div>
+
+<div class="tabs" style="margin-top:18px">
+  <a href="?tab=drafts" class="{{ 'on' if tab=='drafts' }}">Drafts ({{ drafts|length }})</a>
+  <a href="?tab=companies" class="{{ 'on' if tab=='companies' }}">Client companies ({{ companies|length }})</a>
+  <a href="?tab=roles" class="{{ 'on' if tab=='roles' }}">Open roles ({{ roles|length }})</a>
+  <a href="?tab=downloads" class="{{ 'on' if tab=='downloads' }}">Downloads</a>
+</div>
+
+{% if tab == 'drafts' %}
+  {% if not drafts %}<div class="card">No drafts in this search. Try the <a href="?tab=companies">client companies</a> tab: each has links to find the right person, then add them under <a href="{{ url_for('people') }}">Your lists</a>.</div>{% endif %}
+  {% set scored = drafts|selectattr('eval_score')|list %}
+  <div class="card row" style="justify-content:space-between">
+    <div>
+      <b>Nothing has been sent.</b> Review each draft, edit it, then send it yourself and mark it Sent.
+      <div class="hint">Every draft is checked by a separate AI reviewer and scored out of 100 (go-ahead at {{ THRESHOLD }}+).
+        {% if scored %}{{ scored|selectattr('eval_pass','equalto','yes')|list|length }} of {{ scored|length }} drafts passed.{% endif %}</div>
+    </div>
+    <form method="post" action="{{ url_for('redraft', run_id=run_id) }}" onsubmit="return confirm('Re-write all drafts that are not yet Sent/Replied, using your latest Settings?')">
+      <button class="btn">Re-write drafts with latest settings</button>
+    </form>
+  </div>
+  <div class="chips" id="chips">
+    <button class="chip on" data-f="all">All</button>
+    <button class="chip" data-f="ready">Ready to email</button>
+    <button class="chip" data-f="guess">Guessed email</button>
+    <button class="chip" data-f="li">LinkedIn only</button>
+    <button class="chip" data-f="low">Below {{ THRESHOLD }}</button>
+    <button class="chip" data-f="done">Sent / replied</button>
+  </div>
+  {% for d in drafts %}
+  {% set b = badge(d) %}
+  {% set kind = 'done' if d.review_status in ['Sent','Replied','Meeting booked'] else ('li' if not d.email else ('guess' if b[1]=='warn' else 'ready')) %}
+  {% set low = d.eval_pass == 'no' %}
+  <form class="draft" id="d{{ d._i }}" data-kind="{{ kind }}" data-low="{{ 'y' if low }}" method="post" action="{{ url_for('save_draft', run_id=run_id, i=d._i) }}">
+    <div class="row" style="justify-content:space-between;align-items:flex-start">
+      <div class="row" style="align-items:flex-start;gap:14px">
+        <div class="score {{ 'good' if d.eval_pass=='yes' else ('warn' if d.eval_pass=='no' else 'muted') }}" title="AI reviewer score">
+          {{ d.eval_score if d.eval_score else '–' }}<small>{{ 'score' if d.eval_score else 'not checked' }}</small></div>
+        <div>
+          <h3>{{ (d.first_name ~ ' ' ~ d.last_name).strip() or d.title or 'Hiring team' }} · {{ d.company }}</h3>
+          {% set bits = [d.title, ('role open ' ~ d.oldest_days_open ~ ' days') if d.oldest_days_open else '', d.pitch, d.lead_type,
+                         ('last updated by ' ~ d.updated_by ~ ', ' ~ d.updated_at) if d.updated_by else ''] %}
+          <div class="meta">{{ bits|select|join(' · ') }}</div>
+          <div class="row" style="margin-top:6px">
+            {% if d.email %}<span class="badge {{ b[1] }}">{{ b[0] }}</span> <span>{{ d.email }}</span>{% else %}<span class="badge muted">{{ b[0] }}</span>{% endif %}
+            {% if d.icp_fit %}<span class="badge {{ 'good' if d.icp_fit=='Yes' else 'muted' }}">Fit: {{ d.icp_fit }}</span>{% endif %}
+            {% if d.verification_ratio %}<span class="hint">{{ d.verification_ratio }}</span>{% endif %}
+            {% if d.linkedin_url %}<a href="{{ d.linkedin_url }}" target="_blank" rel="noopener">LinkedIn ↗</a>{% endif %}
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <span class="saved">Saved</span>
+        <select name="review_status" style="width:auto" class="autosave">
+          {% for s in STATUSES %}<option {{ 'selected' if d.review_status == s }}>{{ s }}</option>{% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <div class="itabs">
+      <button type="button" class="on" data-t="e1">Email 1 · Day 1</button>
+      <button type="button" data-t="e2">Email 2 · Day 3</button>
+      <button type="button" data-t="e3">Email 3 · Day 8</button>
+      <button type="button" data-t="li">LinkedIn</button>
+      <button type="button" data-t="call">Call script</button>
+      <button type="button" data-t="why">Research &amp; score</button>
+      <button type="button" data-t="reply">They replied{% if d.last_reply %} ●{% endif %}</button>
+    </div>
+
+    {% for n, sk, bk in [(1,'email_subject','email_body'),(2,'email_2_subject','email_2_body'),(3,'email_3_subject','email_3_body')] %}
+    <div class="pane" data-p="e{{ n }}" {{ 'hidden' if n > 1 }}>
+      {% if n == 1 %}<label class="f">Email address</label>
+      <input type="text" name="email" value="{{ d.email }}" placeholder="Add an email if you find one">{% endif %}
+      {% if d[bk] %}
+      <label class="f">Subject</label>
+      <input type="text" name="{{ sk }}" value="{{ d[sk] }}">
+      <label class="f">Email {{ n }}</label>
+      <textarea name="{{ bk }}" rows="13">{{ d[bk] }}</textarea>
+      <div class="row" style="margin-top:8px">
+        <button class="btn primary small">Save</button>
+        <button type="button" class="btn small" onclick="copyText(this.form['{{ bk }}'].value,this)">Copy email</button>
+        {% if d.email %}<a class="btn small mailto" data-s="{{ sk }}" data-b="{{ bk }}" href="#">Open in my email app</a>{% endif %}
+      </div>
+      {% else %}<p class="hint">Not in this search. Use “Re-write drafts with latest settings” above to create the full sequence.</p>{% endif %}
+    </div>
+    {% endfor %}
+
+    <div class="pane" data-p="li" hidden>
+      <label class="f">Connection note <span class="count" data-for="linkedin_connection_note"></span></label>
+      <textarea name="linkedin_connection_note" rows="4" maxlength="300">{{ d.linkedin_connection_note }}</textarea>
+      <button type="button" class="btn small" style="margin-top:6px" onclick="copyText(this.form.linkedin_connection_note.value,this)">Copy note</button>
+      <label class="f">Follow-up 1 (day after they accept)</label>
+      <textarea name="linkedin_followup_1" rows="3">{{ d.linkedin_followup_1 }}</textarea>
+      <button type="button" class="btn small" style="margin-top:6px" onclick="copyText(this.form.linkedin_followup_1.value,this)">Copy</button>
+      <label class="f">Follow-up 2 (5 days later)</label>
+      <textarea name="linkedin_followup_2" rows="3">{{ d.linkedin_followup_2 }}</textarea>
+      <div class="row" style="margin-top:6px"><button type="button" class="btn small" onclick="copyText(this.form.linkedin_followup_2.value,this)">Copy</button>
+        <button class="btn primary small">Save</button></div>
+    </div>
+
+    <div class="pane" data-p="call" hidden>
+      {% if d.call_opener %}
+      <p class="hint" style="margin-top:0">Goal of the call: a meeting, not a sale. First 30 seconds matter most. One line, pause, end with a question.</p>
+      <label class="f">Opener</label><textarea name="call_opener" rows="2">{{ d.call_opener }}</textarea>
+      <label class="f">Bridge (why you're calling, in their language)</label><textarea name="call_bridge" rows="3">{{ d.call_bridge }}</textarea>
+      <label class="f">Likely objections: acknowledge, probe, reframe, respond</label><textarea name="call_objections" rows="7">{{ d.call_objections }}</textarea>
+      <button class="btn primary small" style="margin-top:8px">Save</button>
+      {% else %}<p class="hint">Not in this search. Use “Re-write drafts with latest settings” above.</p>{% endif %}
+    </div>
+
+    <div class="pane" data-p="why" hidden>
+      {% if d.eval_calibration %}<p><b>Reviewer's note:</b> {{ d.eval_calibration }}</p>{% endif %}
+      {% if d.eval_fix %}<p><b>What to fix in the writing</b></p><ul>{% for x in d.eval_fix.split('\n') if x %}<li>{{ x }}</li>{% endfor %}</ul>{% endif %}
+      {% if d.eval_research_gaps %}<p><b>What the research is missing</b></p><ul>{% for x in d.eval_research_gaps.split('\n') if x %}<li>{{ x }}</li>{% endfor %}</ul>{% endif %}
+      {% set sents = (d.eval_sentences or '[]')|fromjson %}
+      {% if sents %}<p><b>Sentence check</b></p>
+      <div class="sents">{% for x in sents %}<div><span class="badge {{ 'good' if x.label.startswith('Evidence') else ('bad' if x.label.startswith('Made') else 'warn') }}">{{ x.label }}</span> <span class="hint">{{ x.message }}</span> {{ x.text }}</div>{% endfor %}</div>{% endif %}
+      {% if d.research_pack %}<p><b>Research pack the drafts were written from</b></p><pre class="pack">{{ d.research_pack }}</pre>{% endif %}
+      {% if d.sequence_plan %}<p class="hint"><b>Sequence:</b> {{ d.sequence_plan }}</p>{% endif %}
+      {% if not d.research_pack %}<p class="hint">This search was drafted before the research and scoring step. Use “Re-write drafts with latest settings”.</p>{% endif %}
+    </div>
+
+    <div class="pane" data-p="reply" hidden>
+      <p class="hint" style="margin-top:0">Paste what they wrote back. You'll get a suggested answer (acknowledge, probe, reframe, respond). Nothing is sent.</p>
+      <textarea class="reply-in" rows="4" placeholder="Paste their reply here">{{ d.last_reply }}</textarea>
+      <button type="button" class="btn primary small reply-btn" style="margin-top:8px" data-url="{{ url_for('reply_helper', run_id=run_id, i=d._i) }}">Suggest a response</button>
+      <div class="reply-out">{% if d.reply_suggestion %}
+        <p><span class="badge">{{ d.reply_type }}</span></p>
+        <label class="f">Suggested response</label><textarea rows="5" class="sugg">{{ d.reply_suggestion }}</textarea>
+        {% if d.reply_next_action %}<p class="hint"><b>Next step:</b> {{ d.reply_next_action }}</p>{% endif %}
+        {% if d.discovery_questions %}<p><b>Questions for the meeting</b></p><ul>{% for q in d.discovery_questions.split('\n') if q %}<li>{{ q }}</li>{% endfor %}</ul>{% endif %}
+      {% endif %}</div>
+    </div>
+  </form>
+  {% endfor %}
+
+{% elif tab == 'companies' %}
+  <div class="card scroll">
+  {% if companies %}
+  <table>
+    <tr><th>#</th><th>Company</th><th>Where</th><th>Open 30+ days</th><th>Find the right person</th><th></th></tr>
+    {% for c in companies %}
+    <tr>
+      <td class="muted">{{ loop.index }}</td>
+      <td><b>{{ c.company }}</b><div class="hint">{{ c.industry }}{% if c.company_domain %} · <a href="https://{{ c.company_domain }}" target="_blank" rel="noopener">{{ c.company_domain }}</a>{% endif %}</div>
+        {% set seen = ((c.ad_contact_emails or '') ~ ' ' ~ (c.website_emails or ''))|emails %}
+        {% if seen %}<div class="hint">Emails seen: {{ seen }}</div>{% endif %}</td>
+      <td>{{ c.regions }}<div class="hint">{{ c.countries }}</div></td>
+      <td><b>{{ c.open_roles_30plus }}</b> role{{ '' if c.open_roles_30plus == '1' else 's' }}, oldest {{ c.oldest_days_open }} days
+        <div class="hint">{{ c.sample_roles }}</div></td>
+      <td style="white-space:nowrap">
+        {% if c.find_hr_on_google %}<a href="{{ c.find_hr_on_google }}" target="_blank" rel="noopener">HR leaders ↗</a><br>
+        <a href="{{ c.find_project_leads_on_google }}" target="_blank" rel="noopener">Project leaders ↗</a><br>
+        <a href="{{ c.find_people_on_linkedin }}" target="_blank" rel="noopener">LinkedIn search ↗</a>{% endif %}</td>
+      <td><a class="btn small" href="{{ url_for('people', company=c.company, website=c.company_domain) }}">Add a person</a></td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}<p class="hint">No companies in this run.</p>{% endif %}
+  </div>
+
+{% elif tab == 'roles' %}
+  <div class="card scroll">
+  <table>
+    <tr><th>Days open</th><th>Role</th><th>Company</th><th>Location</th><th></th></tr>
+    {% for r in roles %}
+    <tr><td><b>{{ r.days_open }}</b></td><td>{{ r.job_title }}</td><td>{{ r.company }}</td>
+      <td>{{ r.location or r.country_code }}</td>
+      <td>{% if r.job_url %}<a href="{{ r.job_url }}" target="_blank" rel="noopener">View ad ↗</a>{% endif %}</td></tr>
+    {% endfor %}
+  </table>
+  </div>
+
+{% else %}
+  <div class="card">
+    <p class="hint" style="margin-top:0">Files open in Excel or Google Sheets. The email send lists import straight into Gmail mail merge, Instantly or Lemlist. Drafts marked Sent, Not interested or Skip are left out of the send lists.</p>
+    <table>{% for f, label in files %}
+      <tr><td>{{ label }}</td><td style="text-align:right"><a class="btn small" href="{{ url_for('download', run_id=run_id, name=f) }}">Download</a></td></tr>
+    {% endfor %}</table>
+  </div>
+{% endif %}
+{% endblock %}
+{% block scripts %}
+<script>
+function copyText(t,btn){navigator.clipboard.writeText(t).then(()=>{const o=btn.textContent;btn.textContent='Copied';setTimeout(()=>btn.textContent=o,1200)})}
+document.querySelectorAll('form.draft').forEach(f=>{
+  const save=async()=>{const r=await fetch(f.action,{method:'POST',body:new FormData(f),headers:{'X-Requested-With':'fetch'}});
+    if(r.ok){const s=f.querySelector('.saved');s.classList.add('show');setTimeout(()=>s.classList.remove('show'),1500)}};
+  f.addEventListener('submit',e=>{e.preventDefault();save()});
+  f.querySelectorAll('.autosave').forEach(el=>el.addEventListener('change',save));
+  f.querySelectorAll('.itabs button').forEach(b=>b.addEventListener('click',()=>{
+    f.querySelectorAll('.itabs button').forEach(x=>x.classList.toggle('on',x===b));
+    f.querySelectorAll('.pane').forEach(p=>p.hidden=p.dataset.p!==b.dataset.t)}));
+  const note=f.linkedin_connection_note,cnt=f.querySelector('.count');
+  if(note&&cnt){const upd=()=>{cnt.textContent=note.value.length+'/300';cnt.classList.toggle('over',note.value.length>300)};note.addEventListener('input',upd);upd()}
+  f.querySelectorAll('.mailto').forEach(m=>m.addEventListener('click',e=>{e.preventDefault();
+    location.href='mailto:'+encodeURIComponent(f.email.value)+'?subject='+encodeURIComponent(f[m.dataset.s].value)+'&body='+encodeURIComponent(f[m.dataset.b].value)}));
+  const rb=f.querySelector('.reply-btn');
+  if(rb)rb.addEventListener('click',async()=>{
+    const txt=f.querySelector('.reply-in').value.trim(),out=f.querySelector('.reply-out');
+    if(!txt){out.innerHTML='<p class="hint">Paste their reply first.</p>';return}
+    rb.disabled=true;rb.textContent='Thinking…';
+    const fd=new FormData();fd.append('reply',txt);
+    const r=await fetch(rb.dataset.url,{method:'POST',body:fd});const j=await r.json();
+    rb.disabled=false;rb.textContent='Suggest a response';
+    if(j.error){out.innerHTML='<p class="hint" style="color:var(--bad)"></p>';out.firstChild.textContent=j.error;return}
+    out.innerHTML='';
+    const add=(tag,text,cls)=>{const el=document.createElement(tag);if(cls)el.className=cls;el.textContent=text;out.appendChild(el);return el};
+    const p=document.createElement('p');const bd=document.createElement('span');bd.className='badge';bd.textContent=j.classification||'reply';p.appendChild(bd);
+    if(j.pspa_gap){const h=document.createElement('span');h.className='hint';h.textContent='  They weren\'t convinced on: '+j.pspa_gap;p.appendChild(h)}
+    out.appendChild(p);
+    add('label','Suggested response','f');const ta=add('textarea',j.suggested_reply||'','sugg');ta.rows=5;
+    const cb=document.createElement('button');cb.type='button';cb.className='btn small';cb.style.marginTop='6px';cb.textContent='Copy response';cb.onclick=()=>copyText(ta.value,cb);out.appendChild(cb);
+    if(j.next_action)add('p','Next step: '+j.next_action,'hint');
+    if(j.do_not_contact)add('p','They asked not to be contacted: set the status to Not interested.','hint');
+    if((j.discovery_questions||[]).length){add('p','Questions for the meeting').style.fontWeight='600';const ul=document.createElement('ul');j.discovery_questions.forEach(q=>{const li=document.createElement('li');li.textContent=q;ul.appendChild(li)});out.appendChild(ul)}
+    f.querySelector('select[name=review_status]').value='Replied';
+  });
+});
+document.querySelectorAll('#chips .chip').forEach(c=>c.addEventListener('click',()=>{
+  document.querySelectorAll('#chips .chip').forEach(x=>x.classList.toggle('on',x===c));
+  document.querySelectorAll('form.draft').forEach(d=>{const f=c.dataset.f;
+    d.style.display=(f==='all'||d.dataset.kind===f||(f==='low'&&d.dataset.low==='y'))?'':'none'});
+}));
+</script>
+{% endblock %}

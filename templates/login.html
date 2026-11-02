@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Sign in{% endblock %}
+{% block body %}
+<form class="card" method="post" style="max-width:380px;margin:60px auto">
+  <h1>Sign in</h1>
+  <p class="sub">Client outreach for the team.</p>
+  <label class="f" for="name">Your name</label>
+  <input type="text" id="name" name="name" required value="{{ request.form.get('name','') }}" placeholder="So the team can see who ran what">
+  <label class="f" for="password">Team password</label>
+  <input type="password" id="password" name="password" required>
+  <button class="btn primary" style="margin-top:16px;width:100%;justify-content:center">Sign in</button>
+</form>
+{% endblock %}

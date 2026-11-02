@@ -1,0 +1,41 @@
+[
+ {
+  "first_name": "Alex",
+  "last_name": "Sample",
+  "title": "Project Director",
+  "company_domain": "sample-offshore.example",
+  "email": "alex@sample-offshore.example",
+  "email_status": "verified",
+  "linkedin_url": "https://www.linkedin.com/in/example-alex",
+  "country": "Malaysia",
+  "organization": {
+   "name": "Sample Offshore Drilling Ltd"
+  }
+ },
+ {
+  "first_name": "Sam",
+  "last_name": "Demo",
+  "title": "Head of Talent Acquisition",
+  "company_domain": "demo-epc.example",
+  "email": "sam@demo-epc.example",
+  "email_status": "verified",
+  "linkedin_url": "https://www.linkedin.com/in/example-sam",
+  "country": "Nigeria",
+  "organization": {
+   "name": "Demo EPC Contractors"
+  }
+ },
+ {
+  "first_name": "Jordan",
+  "last_name": "Example",
+  "title": "HR Manager",
+  "company_domain": "example-northsea.example",
+  "email": "jordan@example-northsea.example",
+  "email_status": "verified",
+  "linkedin_url": "https://www.linkedin.com/in/example-jordan",
+  "country": "United Kingdom",
+  "organization": {
+   "name": "Example North Sea Services"
+  }
+ }
+]

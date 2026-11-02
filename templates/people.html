@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Your lists{% endblock %}
+{% block body %}
+<h1>Your lists</h1>
+<p class="sub">Add people you found yourself and upload your old prospect lists. The app finds their emails and writes drafts. No job search credits used.</p>
+
+<div class="grid g2">
+  <form class="card" method="post">
+    <h2>Add a person</h2>
+    <p class="hint" style="margin-top:0">Found someone on LinkedIn or Google? Add their name and company website; the app works out their email.</p>
+    <input type="hidden" name="action" value="add">
+    <div class="grid g2" style="gap:0 12px">
+      <div><label class="f">First name *</label><input type="text" name="first_name" required></div>
+      <div><label class="f">Last name *</label><input type="text" name="last_name" required></div>
+      <div><label class="f">Job title</label><input type="text" name="title" placeholder="e.g. HR Manager"></div>
+      <div><label class="f">Company</label><input type="text" name="company" value="{{ prefill.company }}"></div>
+      <div><label class="f">Company website *</label><input type="text" name="website" value="{{ prefill.website }}" placeholder="e.g. petrofac.com"></div>
+      <div><label class="f">Country</label><input type="text" name="country" placeholder="e.g. Nigeria"></div>
+    </div>
+    <label class="f">LinkedIn profile link</label><input type="text" name="linkedin_url" placeholder="https://www.linkedin.com/in/...">
+    <div class="hint" style="margin-top:6px">HR / talent titles get the permanent-hire pitch; project and operations titles get the contract pitch.</div>
+    <button class="btn primary" style="margin-top:14px">Add to list</button>
+  </form>
+
+  <div class="card">
+    <h2>Upload old prospects</h2>
+    <p class="hint" style="margin-top:0">A CSV export from your CRM or a spreadsheet (in Excel: File › Save As › CSV). Columns like Name, Email, Company, Title, Country, Status and Notes are recognised automatically. Duplicates and “not interested” rows are removed.</p>
+    <form method="post" enctype="multipart/form-data" class="row">
+      <input type="hidden" name="action" value="upload">
+      <input type="file" name="file" accept=".csv">
+      <button class="btn">Upload</button>
+    </form>
+    {% if files %}
+    <table style="margin-top:14px">{% for f in files %}
+      <tr><td>{{ f.name }}<div class="hint">{{ f.rows }} rows</div></td>
+        <td style="text-align:right"><form method="post"><input type="hidden" name="action" value="delete_file"><input type="hidden" name="name" value="{{ f.name }}">
+          <button class="btn small" onclick="return confirm('Remove this file?')">Remove</button></form></td></tr>
+    {% endfor %}</table>
+    {% endif %}
+  </div>
+</div>
+
+<div class="card">
+  <div class="row" style="justify-content:space-between">
+    <h2 style="margin:0">People waiting for emails ({{ people|length }})</h2>
+    <div class="row">
+      {% if people %}<form method="post"><input type="hidden" name="action" value="clear"><button class="btn small" onclick="return confirm('Clear the whole list?')">Clear list</button></form>{% endif %}
+      <form method="post" action="{{ url_for('run_lists') }}"><button class="btn primary" {{ 'disabled' if job.running or (not people and not files) }}>Find emails &amp; write drafts</button></form>
+    </div>
+  </div>
+  {% if people %}
+  <div class="scroll"><table style="margin-top:10px">
+    <tr><th>Name</th><th>Title</th><th>Company</th><th>Website</th><th></th></tr>
+    {% for p in people %}
+    <tr><td>{{ p.first_name }} {{ p.last_name }}{% if p.linkedin_url %} · <a href="{{ p.linkedin_url }}" target="_blank" rel="noopener">LinkedIn</a>{% endif %}</td>
+      <td>{{ p.title }}</td><td>{{ p.company }}</td><td>{{ p.website }}</td>
+      <td style="text-align:right"><form method="post"><input type="hidden" name="action" value="remove"><input type="hidden" name="i" value="{{ loop.index0 }}"><button class="btn small">Remove</button></form></td></tr>
+    {% endfor %}
+  </table></div>
+  <p class="hint">People stay on this list so you can re-run; anyone who already got a draft in the last 90 days is skipped automatically.</p>
+  {% else %}<p class="hint">Nobody yet. Tip: on the Results page, the Client companies tab has one-click searches to find HR and project leaders at each company.</p>{% endif %}
+</div>
+{% endblock %}

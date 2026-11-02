@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}How to use{% endblock %}
+{% block body %}
+<h1>How to use</h1>
+<p class="sub">From finding a client to sending the first message.</p>
+<div class="grid g2">
+  <div class="card">
+    <h2>1. Find clients</h2>
+    <p>On <b>Find clients</b>, pick the countries or regions and press <b>Find clients</b>. The app looks for oil &amp; gas operators, EPC contractors and service companies whose roles have been advertised for 30+ days: a sign they need help hiring. Recruitment agencies are left out.</p>
+    <p class="hint">Each job ad checked uses 1 credit. Start with 25 and grow once you see the results.</p>
+  </div>
+  <div class="card">
+    <h2>2. Review the drafts</h2>
+    <p>Open <b>Results › Drafts</b>. Every contact gets an email and a LinkedIn sequence. HR and talent leaders get the permanent-hire pitch (flat fee of one month's salary); project and operations managers get the contract pitch (man-hour / man-month, 6-month minimum).</p>
+    <p>Edit anything, then <b>Save</b>. Use <b>Open in my email app</b> or <b>Copy email</b> to send.</p>
+  </div>
+  <div class="card">
+    <h2>How drafts are written</h2>
+    <p>The method follows the Art of Selling: the only goal of outreach is a short meeting. Before writing, the app builds a <b>research pack</b> for each contact. Every fact is marked <b>Verified</b> (with its source and date, e.g. the job ad) or <b>Assertion</b> (an industry pattern, used only as a question). Nothing else may be stated as fact.</p>
+    <p>Each contact gets a full sequence: <b>Email 1</b> (day 1, opens with their verified hiring signal), <b>Email 2</b> (day 3, a new angle as a question), <b>Email 3</b> (day 8, “is this for you, or someone else?”), a <b>LinkedIn</b> note and two follow-ups, and a <b>call script</b> with likely objections.</p>
+  </div>
+  <div class="card">
+    <h2>The score</h2>
+    <p>A separate AI reviewer checks every sentence (<span class="badge good">Evidence-backed</span> <span class="badge warn">Generic</span> <span class="badge bad">Made up</span>) and scores the sequence out of 100: specific opening, about them not us, no filler, one low ask, each email adds something new. Below {{ THRESHOLD }} it is rewritten with the reviewer's fixes, up to 3 times.</p>
+    <p>The score helps; you decide. Open <b>Research &amp; score</b> on any draft to see why it scored what it did and what the research is missing.</p>
+  </div>
+  <div class="card">
+    <h2>When they reply</h2>
+    <p>Open <b>They replied</b>, paste their message and press <b>Suggest a response</b>. You get what kind of reply it is, which part they weren't convinced by (Problem, Solution, Proof or Ask), and a short answer: acknowledge, ask a question, reframe, respond. If a meeting looks likely, you also get discovery questions. Nothing is sent.</p>
+  </div>
+  <div class="card">
+    <h2>3. Check the email label</h2>
+    <p><span class="badge good">Verified</span> <span class="badge good">From job ad</span> <span class="badge good">Company inbox</span> safe to send.</p>
+    <p><span class="badge warn">Guessed</span> built from the company's email format but not confirmed. Send these a few at a time; too many bounces can push your emails into spam.</p>
+    <p><span class="badge muted">No email</span> use the LinkedIn note and follow-ups instead.</p>
+  </div>
+  <div class="card">
+    <h2>4. Track what you've sent</h2>
+    <p>Change each draft's status to <b>Sent</b>, <b>Replied</b>, <b>Meeting booked</b> or <b>Not interested</b>. Everyone on the team sees the same status, so nobody contacts the same person twice. Anyone who got a draft is skipped for 90 days.</p>
+  </div>
+  <div class="card">
+    <h2>5. Big companies with no contact</h2>
+    <p>Large companies rarely publish emails. In <b>Results › Client companies</b>, use <b>HR leaders</b>, <b>Project leaders</b> or <b>LinkedIn search</b> to find the right person, then <b>Add a person</b>. Under <b>Your lists</b>, press <b>Find emails &amp; write drafts</b>.</p>
+  </div>
+  <div class="card">
+    <h2>6. Old prospects</h2>
+    <p>Upload your old lists under <b>Your lists</b>. Duplicates and “not interested” contacts are removed. Old contacts whose company has 30+ day vacancies right now are marked <b>HOT</b>.</p>
+  </div>
+  <div class="card">
+    <h2>Sending in bulk</h2>
+    <p><b>Results › Downloads</b> has send lists ready to import into Gmail mail merge, Instantly or Lemlist. Send from a separate outreach email address, and start with 30–50 emails a day per mailbox.</p>
+  </div>
+  <div class="card">
+    <h2>Better drafts</h2>
+    <p>Fill in <b>Settings</b> fully: the sender's name, real proof points (placements, clients you may name) and any replacement guarantee. Drafts only use what's there. After changing Settings, press <b>Re-write drafts with latest settings</b> on a search; drafts already marked Sent or Replied are left alone.</p>
+  </div>
+  <div class="card">
+    <h2>When credits run out</h2>
+    <p>The credit bar on <b>Find clients</b> shows what's left and when it renews. With no credits left, keep working from <b>Your lists</b>: adding people and uploading lists costs nothing.</p>
+  </div>
+</div>
+{% endblock %}

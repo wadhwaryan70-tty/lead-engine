@@ -1,0 +1,12 @@
+.env
+.env.*
+!.env.example
+output/
+input/
+data/
+.venv/
+__pycache__/
+*.pyc
+.claude/
+skills-lock.json
+.DS_Store

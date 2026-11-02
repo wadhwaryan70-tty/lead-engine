@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Search in progress{% endblock %}
+{% block body %}
+<h1 id="title">{{ job.label or 'Search' }}</h1>
+<p class="sub" id="status">{% if job.by %}Started by {{ job.by }}. {% endif %}Working… you can leave this page and come back.</p>
+<div class="card">
+  <div class="row" style="justify-content:space-between;margin-bottom:10px">
+    <span class="hint" id="elapsed"></span>
+    <a class="btn primary" id="open" style="display:none">See results</a>
+  </div>
+  <div class="log" id="log"></div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+let since=0;const log=document.getElementById('log');
+async function poll(){
+  const r=await fetch('{{ url_for("job_status") }}?since='+since);const j=await r.json();
+  if(j.lines.length){log.textContent+=j.lines.join('\n')+'\n';since=j.total;log.scrollTop=log.scrollHeight}
+  const m=Math.floor(j.elapsed/60),s=j.elapsed%60;
+  document.getElementById('elapsed').textContent=(j.running?'Running for ':'Took ')+m+'m '+s+'s';
+  if(j.running){setTimeout(poll,1500);return}
+  const st=document.getElementById('status');
+  if(j.error){st.textContent=j.error;st.style.color='var(--bad)'}
+  else if(j.run){st.textContent='Done.';const a=document.getElementById('open');a.href='{{ url_for("results") }}/'+j.run;a.style.display='inline-flex'}
+  else{st.textContent='Nothing is running.'}
+}
+poll();
+</script>
+{% endblock %}

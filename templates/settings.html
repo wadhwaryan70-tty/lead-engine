@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Settings{% endblock %}
+{% block body %}
+<h1>Settings</h1>
+<p class="sub">Your company details go into every email. Only put in claims you can stand behind: the AI never invents numbers or clients.</p>
+<form method="post">
+<div class="grid g2">
+  <div class="card">
+    <h2>Your company</h2>
+    <label class="f">Company name</label><input type="text" name="company_name" value="{{ profile.company_name }}">
+    <label class="f">Website</label><input type="text" name="website" value="{{ profile.website }}">
+    <label class="f">Regions you serve</label><input type="text" name="regions_served" value="{{ profile.regions_served }}">
+    <label class="f">Disciplines</label><input type="text" name="disciplines" value="{{ profile.disciplines }}">
+    <label class="f">Postal address (shown in the email footer)</label><input type="text" name="postal_address" value="{{ profile.postal_address }}">
+    <label class="f">Proof points (one per line)</label>
+    <textarea name="proof_points" rows="4" placeholder="e.g. 120+ placements across West Africa since 2019">{{ profile.proof_points|join('\n') }}</textarea>
+    <div class="hint">Placements, named clients you may mention, time-to-fill. Leave empty if unsure.</div>
+  </div>
+  <div class="card">
+    <h2>Sender (signs every email)</h2>
+    <label class="f">Name</label><input type="text" name="sender_name" value="{{ profile.sender_name }}">
+    <label class="f">Job title</label><input type="text" name="sender_title" value="{{ profile.sender_title }}">
+    <label class="f">Email</label><input type="text" name="sender_email" value="{{ profile.sender_email }}">
+    <label class="f">Phone</label><input type="text" name="sender_phone" value="{{ profile.sender_phone }}">
+    <h2 style="margin-top:22px">Commercial terms</h2>
+    <label class="f">Permanent hire fee</label><input type="text" name="permanent_fee" value="{{ profile.permanent_fee }}">
+    <label class="f">Typical market fee (for comparison)</label><input type="text" name="typical_market_fee" value="{{ profile.typical_market_fee }}">
+    <label class="f">Replacement guarantee</label><input type="text" name="replacement_guarantee" value="{{ profile.replacement_guarantee }}" placeholder="e.g. Free replacement within 90 days">
+    <div class="hint">Emails only call the fee “risk-free” if a guarantee is filled in.</div>
+    <label class="f">Contract (deputation) billing</label><input type="text" name="deputation_billing" value="{{ profile.deputation_billing }}">
+    <label class="f">Minimum contract length (months)</label><input type="number" name="deputation_minimum_months" value="{{ profile.deputation_minimum_months }}" min="1">
+    <label class="f">Opt-out line</label><input type="text" name="unsubscribe_text" value="{{ profile.unsubscribe_text }}">
+  </div>
+</div>
+
+<div class="card">
+  <h2>Service keys</h2>
+  <p class="hint" style="margin-top:0">Paste a new key to replace one; leave blank to keep the current key. Keys are never shown in full.</p>
+  <div class="scroll"><table>
+    {% for k in keys %}
+    <tr><td style="width:30%"><b>{{ k.label }}</b><div class="hint">{{ k.help }}</div></td>
+      <td style="width:18%">{% if k.set %}<span class="badge good">Set {{ k.hint }}</span>{% else %}<span class="badge muted">Not set</span>{% endif %}</td>
+      <td><input type="password" name="key_{{ k.name }}" placeholder="Paste new key" autocomplete="off"></td></tr>
+    {% endfor %}
+  </table></div>
+</div>
+<button class="btn primary">Save settings</button>
+</form>
+{% endblock %}
